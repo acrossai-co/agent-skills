@@ -19,6 +19,7 @@ Agent Skills solve this by giving AI assistants **expert-level AcrossAI knowledg
 
 | Skill | What it teaches |
 |---|---|
+| `acrossai-abilities-api` | Registering add-on abilities via `acrossai_abilities_api_init`, the 4 AcrossAI-specific fields, Library admin UI config, and sparse config storage. Extends `wp-abilities-api`. |
 
 ## Quick Start
 
