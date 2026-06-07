@@ -112,11 +112,26 @@ class Get_Site_Info extends Ability_Definition {
         return [
             'name' => 'my-plugin/get-info',
             'args' => [
-                'label'            => __( 'Get Site Info', 'my-plugin' ),
-                'description'      => __( 'Returns basic site information.', 'my-plugin' ),
-                'category'         => 'my-plugin',
-                'execute_callback' => [ $this, 'execute' ],
-                'meta'             => [ 'show_in_rest' => true ],
+                'label'               => __( 'Get Site Info', 'my-plugin' ),
+                'description'         => __( 'Returns basic site information.', 'my-plugin' ),
+                'category'            => 'my-plugin',
+                'execute_callback'    => [ $this, 'execute' ],
+                'permission_callback' => fn() => current_user_can( 'manage_options' ),
+                'output_schema'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'name'       => [ 'type' => 'string' ],
+                        'url'        => [ 'type' => 'string' ],
+                        'wp_version' => [ 'type' => 'string' ],
+                    ],
+                ],
+                'meta' => [
+                    'show_in_rest' => true,
+                    'mcp'          => [
+                        'public' => true,
+                        'type'   => 'tools',
+                    ],
+                ],
             ],
         ];
     }
@@ -167,6 +182,38 @@ In your plugin's `composer.json`:
 ```
 
 Place ability classes under `includes/Abilities/` (e.g. `includes/Abilities/Get_Site_Info.php`). Run `composer dump-autoload` after adding classes.
+
+#### 4d) Configure visibility and MCP exposure
+
+All visibility options live inside `args['meta']`:
+
+| Goal | What to set |
+|------|------------|
+| Expose via WordPress REST API | `'show_in_rest' => true` |
+| Expose to MCP clients (Claude, agents) | `'mcp' => ['public' => true, 'type' => 'tools']` |
+| Admin-only execution | `'permission_callback' => fn() => current_user_can('manage_options')` |
+
+**`mcp.type` values**: `'tools'` (executable actions — most common), `'resources'` (read-only data), `'prompts'` (prompt templates).
+
+Full example with all three options:
+
+```php
+'permission_callback' => fn() => current_user_can( 'manage_options' ),
+'meta' => [
+    'show_in_rest' => true,
+    'mcp' => [
+        'public' => true,
+        'type'   => 'tools',
+    ],
+    'annotations' => [
+        'readonly'    => false,
+        'destructive' => false,
+        'idempotent'  => true,
+    ],
+],
+```
+
+See `references/plugin-hooks.md` for the full `meta` / MCP reference.
 
 ---
 

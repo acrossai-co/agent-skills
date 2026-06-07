@@ -101,10 +101,98 @@ Only these keys inside `args` pass AcrossAI's validation filter. **All other key
 | `description` | What the ability does |
 | `category` | Category ID (must be registered first via `wp_abilities_api_categories_init`) |
 | `execute_callback` | Callable that executes the ability |
-| `permission_callback` | Optional callable to gate execution by current user |
-| `meta` | Array — set `show_in_rest: true` to expose via REST; `readonly: true` for informational abilities |
+| `permission_callback` | Callable to gate execution; use `fn() => current_user_can('manage_options')` for admin-only |
+| `input_schema` | JSON Schema object describing accepted input; used for validation and API docs |
+| `output_schema` | JSON Schema object describing return shape; used for documentation |
+| `meta` | Array — visibility flags (`show_in_rest`, `mcp`) and behavior annotations (see below) |
 
 For the full set of WordPress-native `args` keys and their semantics, see `../wp-abilities-api/references/php-registration.md`.
+
+---
+
+## Visibility and MCP configuration (meta)
+
+The `meta` array controls where and how an ability is exposed. All keys live inside `args['meta']`.
+
+### show_in_rest
+
+Exposes the ability via the WordPress REST API (`wp-abilities/v1`). Required for any ability that should be callable over HTTP.
+
+```php
+'meta' => [
+    'show_in_rest' => true,
+],
+```
+
+### MCP (Model Context Protocol)
+
+Exposes the ability to connected MCP clients (AI agents, Claude Desktop, etc.). The canonical structure uses a nested `mcp` key:
+
+```php
+'meta' => [
+    'show_in_rest' => true,
+    'mcp' => [
+        'public' => true,     // show_in_mcp — make this ability visible to MCP clients
+        'type'   => 'tools',  // mcp_type — how MCP sees it: 'tools', 'resources', or 'prompts'
+    ],
+],
+```
+
+| `mcp` key | Type | Description |
+|-----------|------|-------------|
+| `public` | `bool` | `true` = visible to MCP clients. Default `false`. |
+| `type` | `string` | MCP protocol exposure type. Use `'tools'` for executable abilities (most common), `'resources'` for read-only data sources, `'prompts'` for prompt templates. |
+| `servers` | `array` | Optional. Restrict to specific MCP server IDs. Omit to expose to all connected servers. |
+
+**Typical configuration for an admin ability exposed to both REST and MCP as a Tool:**
+
+```php
+protected function ability(): array {
+    return [
+        'name' => 'my-plugin/get-info',
+        'args' => [
+            'label'               => __( 'Get Site Info', 'my-plugin' ),
+            'description'         => __( 'Returns basic site information.', 'my-plugin' ),
+            'category'            => 'my-plugin',
+            'execute_callback'    => [ $this, 'execute' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+            'meta' => [
+                'show_in_rest' => true,
+                'mcp' => [
+                    'public' => true,
+                    'type'   => 'tools',
+                ],
+            ],
+        ],
+    ];
+}
+```
+
+### Behavior annotations
+
+Optional hints for tooling and documentation. Set inside `meta['annotations']`:
+
+```php
+'meta' => [
+    'show_in_rest' => true,
+    'mcp' => [ 'public' => true, 'type' => 'tools' ],
+    'annotations' => [
+        'readonly'    => false, // ability modifies state
+        'destructive' => true,  // modifications may be irreversible
+        'idempotent'  => true,  // safe to call multiple times with same args
+    ],
+],
+```
+
+### Admin-only permission
+
+For abilities that should only be callable by site administrators:
+
+```php
+'permission_callback' => fn() => current_user_can( 'manage_options' ),
+```
+
+This is enforced at execution time (REST and MCP) regardless of visibility settings.
 
 ---
 
