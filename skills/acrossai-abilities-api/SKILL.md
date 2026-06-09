@@ -3,6 +3,10 @@ name: acrossai-abilities-api
 description: "Use when registering add-on abilities via the AcrossAI plugin — covers the Ability_Definition class-based authoring API, the acrossai_abilities_api_init filter contract, the 4 AcrossAI-specific fields (main_key, main_key_label, sub_key, sub_key_label), the Library admin UI config system, and the REST config endpoint."
 compatibility: "Targets WordPress 6.9+ (PHP 7.4+). Requires AcrossAI Abilities Manager plugin."
 extends: "wp-abilities-api"
+show_in_rest: true
+show_in_mcp: true
+mcp_type: tools
+access: admin
 ---
 
 # AcrossAI Abilities API — Add-on Registration
